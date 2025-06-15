@@ -1,0 +1,20 @@
+[project]
+name = "portfolio-optimization"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "black>=25.1.0",
+    "isort>=6.0.1",
+    "jupyterlab>=4.4.3",
+    "jupyterlab-code-formatter>=3.0.2",
+    "jupyterlab-lsp>=5.1.1",
+    "jupyterlab-theme-solarized-dark>=3.0.1",
+    "matplotlib>=3.10.3",
+    "pandas>=2.3.0",
+    "plotly>=6.1.2",
+    "python-lsp-server>=1.12.2",
+    "theme-darcula>=4.0.0",
+    "yfinance>=0.2.63",
+]
