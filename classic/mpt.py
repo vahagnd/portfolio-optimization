@@ -1,10 +1,9 @@
 import numpy as np
+import pandas as pd  # Assuming returns is a pandas DataFrame
 import scipy.optimize as sco
 import cupy as cp
 import torch
-import pandas as pd  # Assuming returns is a pandas DataFrame
 import torch.optim
-
 
 def markowitz_optimization(returns):
     """
@@ -133,62 +132,50 @@ def markowitz_closed_form(returns, target_return):
 
     return weights
 
-
-def markowitz_optimization_cupy(returns, learning_rate=1e-4, max_iter=1000, device='cuda'):
+def markowitz_optimization_cupy(returns_df, learning_rate=1e-4, max_iter=1000, device='cuda'):
     """
-    Markowitz portfolio optimization using CuPy with gradient descent.
-
+    Markowitz portfolio optimization using CuPy with gradient descent on GPU.
+    
     Parameters:
-        returns (torch.Tensor): Matrix of asset returns (n_assets x n_days)
-        target_return (float): The target portfolio return to optimize
-        learning_rate (float): Learning rate for gradient descent
-        max_iter (int): Maximum number of iterations for optimization
-        device (str): Device to run the computations on ('cuda' or 'cpu')
-
+        returns_df (pd.DataFrame): Asset returns with shape (n_days, n_assets)
+        learning_rate (float): Gradient descent learning rate
+        max_iter (int): Number of iterations
+        device (str): Must be 'cuda' (for PyTorch tensor output)
+        
     Returns:
-        torch.Tensor: Optimal portfolio weights (n_assets,)
+        torch.Tensor: Optimized portfolio weights on GPU (n_assets,)
     """
-
-    # Convert returns to CuPy array on the same device (GPU)
-    returns = cp.fromDlpack(returns)
-
-    # Step 1: Calculate mean returns and covariance matrix
-    mean_returns = cp.mean(returns, axis=0)  # n_assets
-    cov_matrix = cp.cov(returns.T)  # n_assets x n_assets
-
-    # Step 2: Initialize weights (equal allocation)
-    n_assets = returns.shape[1]
-    weights = cp.ones(n_assets) / n_assets
-
-    # Step 3: Gradient descent loop
+    # Convert pandas DataFrame to CuPy array on GPU
+    returns_cp = cp.asarray(returns_df.values, dtype=cp.float32)  # shape (n_days, n_assets)
+    
+    # Calculate mean returns and covariance matrix (on GPU)
+    mean_returns = cp.mean(returns_cp, axis=0)       # shape (n_assets,)
+    cov_matrix = cp.cov(returns_cp.T)                # shape (n_assets, n_assets)
+    
+    n_assets = returns_cp.shape[1]
+    weights = cp.ones(n_assets, dtype=cp.float32) / n_assets
+    
     for _ in range(max_iter):
-        # # Compute return and variance
-        # port_return = cp.dot(mean_returns, weights)
-        # port_variance = cp.dot(weights, cp.dot(cov_matrix, weights))
-        #
-        # # Compute loss
-        # loss = port_variance - port_return 
-
-        # Gradient of variance
-        grad_variance = 2 * cp.dot(cov_matrix, weights)
-
-        # Gradient of return penalty
-        grad_return = mean_returns
-
+        # Gradient of portfolio variance
+        grad_variance = 2 * cov_matrix.dot(weights)
+        
+        # Gradient of negative return (to maximize return, add minus)
+        grad_return = -mean_returns
+        
         # Total gradient
-        grad_total = grad_variance + grad_return
-
-        # Gradient descent update
-        weights -= learning_rate * grad_total
-
-        # Projection to feasible set: long-only and normalized
+        grad = grad_variance + grad_return
+        
+        # Gradient descent step
+        weights -= learning_rate * grad
+        
+        # Project weights: no short selling, weights >= 0, sum to 1
         weights = cp.clip(weights, 0, cp.inf)
         weights /= cp.sum(weights)
 
-    # Convert weights back to a PyTorch tensor on the correct device
-    weights_tensor = torch.tensor(weights.get(), dtype=torch.float32, device=device)
-
-    return weights_tensor
+    # Move weights back to PyTorch tensor on CUDA device
+    # weights_torch = torch.tensor(weights.get(), dtype=torch.float32, device=device)
+    
+    return weights
 
 def differentiable_markowitz(returns, target_return, learning_rate = 1e-6):
     """
