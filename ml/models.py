@@ -66,41 +66,39 @@ class SharpeLSTMModel(nn.Module):
         return weights
 
 class SharpeFCModel(nn.Module):
-    def __init__(self, input_size=2, feature_size=32, hidden_size=64):
+    def __init__(self, input_size=2, feature_size=32, hidden_size=64, dropout_rate=0.1):
         super(SharpeFCModel, self).__init__()
 
-        self.input_size = input_size  # 2 features: returns, prices
-        self.feature_size = feature_size
-        self.hidden_size = hidden_size
-
-        # Project (returns, prices) → feature space
         self.feature_projection = nn.Linear(input_size, feature_size)
         self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(dropout_rate)
 
-        # After projection, we'll pool over time dimension
-        # Then process with FC layers
-
-        # FC block: (R * S * F) → hidden → 1 score per stock
+        # Deeper FC block: 4 layers
         self.fc1 = nn.Linear(feature_size, hidden_size)
-        self.fc2 = nn.Linear(hidden_size, 1)
+        self.fc2 = nn.Linear(hidden_size, hidden_size)
+        self.fc3 = nn.Linear(hidden_size, hidden_size)
+        self.fc4 = nn.Linear(hidden_size, 1)
 
     def forward(self, x):
         B, R, T, S, _ = x.shape  # (B, R, T, S, 2)
 
-        # Project features
-        x = self.feature_projection(x)  # (B, R, T, S, F)
-        x = self.relu(x)
+        # Project (returns, prices) → feature space
+        x = self.relu(self.feature_projection(x))  # (B, R, T, S, F)
 
-        # Aggregate over time: mean pooling
+        # Pool over time (mean pooling)
         x = x.mean(dim=2)  # (B, R, S, F)
 
-        # Flatten and feed into FC
-        x = self.fc1(x)         # (B, R, S, hidden)
-        x = self.relu(x)
-        x = self.fc2(x)         # (B, R, S, 1)
-        x = x.squeeze(-1)       # (B, R, S)
+        # Feed through deeper FC block
+        x = self.relu(self.fc1(x))     # (B, R, S, hidden)
+        x = self.dropout(x)
+        x = self.relu(self.fc2(x))     # (B, R, S, hidden)
+        x = self.dropout(x)
+        x = self.relu(self.fc3(x))     # (B, R, S, hidden)
+        x = self.dropout(x)
+        x = self.fc4(x)                # (B, R, S, 1)
+        x = x.squeeze(-1)              # (B, R, S)
 
-        # Apply softmax to get portfolio weights
-        weights = F.softmax(x, dim=2)  # (B, R, S)
+        # Softmax to get portfolio weights
+        weights = F.softmax(x, dim=2)
 
         return weights
