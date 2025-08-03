@@ -1,5 +1,8 @@
 import torch
 from torch.utils.data import Dataset, DataLoader
+import logging
+
+logger = logging.getLogger(__name__)
 
 class StockDataset(Dataset):
     def __init__(self, returns_df, prices_df, window_size=32, sharpe_window=25):
@@ -13,8 +16,8 @@ class StockDataset(Dataset):
         self.returns = torch.tensor(returns_df, dtype=torch.float32)  # (days, S)
         self.prices = torch.tensor(prices_df, dtype=torch.float32)    # (days, S)
 
-        # print(self.returns.shape)
-        # print(self.prices.shape)
+        logger.debug(self.returns.shape)
+        logger.debug(self.prices.shape)
 
         self.T = window_size
         self.R = sharpe_window

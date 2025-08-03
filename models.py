@@ -1,7 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import logging
 
+logger = logging.getLogger(__name__)
 
 def sharpe_ratio_loss(weights, returns, epsilon=1e-6):
     """
@@ -102,3 +104,10 @@ class SharpeFCModel(nn.Module):
         weights = F.softmax(x, dim=2)
 
         return weights
+
+if __name__ == "__main__":
+    logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(module)s.%(funcName)s:%(lineno)d - %(message)s"
+    )
+    logger.info("models.py executed directly")

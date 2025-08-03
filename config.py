@@ -1,0 +1,50 @@
+import torch
+import logging
+from data.preprocessing import Data
+import pandas as pd
+import random
+import numpy as np
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(module)s.%(funcName)s:%(lineno)d - %(message)s"
+)
+
+SEED = 42
+def fix_seed(seed=SEED):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
+PRICES = 'close'  # Options: 'open', 'high', 'low', 'close'
+YEARS = [2018, 2019, 2020]  # Years to split data
+SCALER = 'StandardScaler'  # Options: 'MinMaxScaler', 'StandardScaler'
+
+DF_MAG7_RAW = pd.read_csv("data-csv/ohlcv_adjusted_mag7.csv")
+
+BATCH_SIZE = 8
+SHARPE_WINDOW = 25
+TIME_WINDOW = 32
+STOCK_COUNT = Data(DF_MAG7_RAW).preprocess(years=YEARS)[0].shape[1]
+FEATURE_COUNT = 32
+HIDDEN_SIZE = 64
+NUM_EPOCHS = 10
+MODEL_NAME_LSTM = "single_layer_lstm_on_mag7"
+MODEL_NAME_FC = "single_layer_fc_on_mag7"
+# DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu") # cuda is for nvidia GPUs
+DEVICE = torch.device("mps" if torch.backends.mps.is_available() else "cpu") # mps is for macos
+
+LR = 1e-4
+MOMENTUM = 0.99
+WEIGHT_DECAY = 1e-5
+OPTIMIZE_TYPE = "SGD"  # Options: "Adam", "SGD"
+LOSS_FUNCTION = "SharpeRatioLoss"  # Options: "SharpeRatioLoss"
+
+LATEST_MODEL_PATH = "saved/model_latest"
+

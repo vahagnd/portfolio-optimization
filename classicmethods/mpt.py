@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd  # Assuming returns is a pandas DataFrame
 import scipy.optimize as sco
-import cupy as cp
+# import cupy as cp
 import torch
 import torch.optim
 
@@ -132,50 +132,50 @@ def markowitz_closed_form(returns, target_return):
 
     return weights
 
-def markowitz_optimization_cupy(returns_df, learning_rate=1e-4, max_iter=1000, device='cuda'):
-    """
-    Markowitz portfolio optimization using CuPy with gradient descent on GPU.
+# def markowitz_optimization_cupy(returns_df, learning_rate=1e-4, max_iter=1000, device='cuda'):
+#     """
+#     Markowitz portfolio optimization using CuPy with gradient descent on GPU.
     
-    Parameters:
-        returns_df (pd.DataFrame): Asset returns with shape (n_days, n_assets)
-        learning_rate (float): Gradient descent learning rate
-        max_iter (int): Number of iterations
-        device (str): Must be 'cuda' (for PyTorch tensor output)
+#     Parameters:
+#         returns_df (pd.DataFrame): Asset returns with shape (n_days, n_assets)
+#         learning_rate (float): Gradient descent learning rate
+#         max_iter (int): Number of iterations
+#         device (str): Must be 'cuda' (for PyTorch tensor output)
         
-    Returns:
-        torch.Tensor: Optimized portfolio weights on GPU (n_assets,)
-    """
-    # Convert pandas DataFrame to CuPy array on GPU
-    returns_cp = cp.asarray(returns_df.values, dtype=cp.float32)  # shape (n_days, n_assets)
+#     Returns:
+#         torch.Tensor: Optimized portfolio weights on GPU (n_assets,)
+#     """
+#     # Convert pandas DataFrame to CuPy array on GPU
+#     returns_cp = cp.asarray(returns_df.values, dtype=cp.float32)  # shape (n_days, n_assets)
     
-    # Calculate mean returns and covariance matrix (on GPU)
-    mean_returns = cp.mean(returns_cp, axis=0)       # shape (n_assets,)
-    cov_matrix = cp.cov(returns_cp.T)                # shape (n_assets, n_assets)
+#     # Calculate mean returns and covariance matrix (on GPU)
+#     mean_returns = cp.mean(returns_cp, axis=0)       # shape (n_assets,)
+#     cov_matrix = cp.cov(returns_cp.T)                # shape (n_assets, n_assets)
     
-    n_assets = returns_cp.shape[1]
-    weights = cp.ones(n_assets, dtype=cp.float32) / n_assets
+#     n_assets = returns_cp.shape[1]
+#     weights = cp.ones(n_assets, dtype=cp.float32) / n_assets
     
-    for _ in range(max_iter):
-        # Gradient of portfolio variance
-        grad_variance = 2 * cov_matrix.dot(weights)
+#     for _ in range(max_iter):
+#         # Gradient of portfolio variance
+#         grad_variance = 2 * cov_matrix.dot(weights)
         
-        # Gradient of negative return (to maximize return, add minus)
-        grad_return = -mean_returns
+#         # Gradient of negative return (to maximize return, add minus)
+#         grad_return = -mean_returns
         
-        # Total gradient
-        grad = grad_variance + grad_return
+#         # Total gradient
+#         grad = grad_variance + grad_return
         
-        # Gradient descent step
-        weights -= learning_rate * grad
+#         # Gradient descent step
+#         weights -= learning_rate * grad
         
-        # Project weights: no short selling, weights >= 0, sum to 1
-        weights = cp.clip(weights, 0, cp.inf)
-        weights /= cp.sum(weights)
+#         # Project weights: no short selling, weights >= 0, sum to 1
+#         weights = cp.clip(weights, 0, cp.inf)
+#         weights /= cp.sum(weights)
 
-    # Move weights back to PyTorch tensor on CUDA device
-    # weights_torch = torch.tensor(weights.get(), dtype=torch.float32, device=device)
+#     # Move weights back to PyTorch tensor on CUDA device
+#     # weights_torch = torch.tensor(weights.get(), dtype=torch.float32, device=device)
     
-    return weights
+#     return weights
 
 def differentiable_markowitz(returns, target_return, learning_rate = 1e-6):
     """
