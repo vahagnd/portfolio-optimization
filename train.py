@@ -12,178 +12,113 @@ logger = logging.getLogger(__name__)
 
 train_dataloader, val_dataloader = get_dataloaders(DF_MAG7_RAW, years=YEARS, prices=PRICES, normalize=True, scaler=SCALER)
 
-logger.info(f"Stock count: {STOCK_COUNT}")
+def train_model(
+    model_type: str = "lstm",
+    lr: float = 1e-4,
+    momentum: float = 0.99,
+    weight_decay: float = 1e-5,
+    optimize_type: str = "SGD",
+    device: torch.device = DEVICE,
+    train_dataloader=train_dataloader,
+    val_dataloader=val_dataloader
+):
+    logger.info(f"Training {model_type.upper()} model...")
 
-def train_lstm(lr: float = 1e-4, momentum: float = 0.99, weight_decay: float = 1e-5, optimize_type: str = "SGD"):
-    logger.info("Training LSTM model...")
-    model = SharpeLSTMModel(num_classes=1, input_size=2, hidden_size=HIDDEN_SIZE, num_layers=1, feature_size=FEATURE_COUNT).to(DEVICE)
-    
+    # ---- Model Selection ----
+    if model_type == "lstm":
+        model = SharpeLSTMModel(
+            num_classes=1,
+            input_size=2,
+            hidden_size=HIDDEN_SIZE,
+            num_layers=1,
+            feature_size=FEATURE_COUNT
+        ).to(device)
+        notes = "fp-relu-lstm-fc-sm"
+        model_name = MODEL_NAME_LSTM
+        plot_name = "train_val_loss_lstm"
+        weight_file = "weights_lstm.pth"
+        info_file = "info_lstm.json"
+
+    elif model_type == "fc":
+        model = SharpeFCModel(
+            input_size=2,
+            hidden_size=HIDDEN_SIZE,
+            feature_size=FEATURE_COUNT
+        ).to(device)
+        notes = "fp-relu-mp-fc-relu-fc-relu-fc-relu-fc-sm"
+        model_name = MODEL_NAME_FC
+        plot_name = "train_val_loss_fc"
+        weight_file = "weights_fc.pth"
+        info_file = "info_fc.json"
+
+    else:
+        raise ValueError(f"Unknown model_type: {model_type}")
+
+    # ---- Optimizer Selection ----
     if optimize_type == "Adam":
         optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     elif optimize_type == "SGD":
         optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
     else:
-        pass
+        raise ValueError(f"Unknown optimize_type: {optimize_type}")
 
     train_losses = []
     val_losses = []
 
+    # ---- Training Loop ----
     for epoch in range(NUM_EPOCHS):
-        model.train()  # Set the model to training mode
+        model.train()
         total_train_loss = 0.0
+
         for batch_data, batch_returns in train_dataloader:
-            batch_data, batch_returns = batch_data.to(DEVICE), batch_returns.to(DEVICE)
+            batch_data, batch_returns = batch_data.to(device), batch_returns.to(device)
+            optimizer.zero_grad()
 
-            optimizer.zero_grad()  # Reset gradients
-
-            # Forward pass
             weights = model(batch_data)
-
-            # Compute training loss (Negative Sharpe ratio)
-            train_loss = sharpe_ratio_loss(weights, batch_returns)
-            total_train_loss += train_loss.item()
-
-            # Backward pass
-            train_loss.backward()
-
-            # Update parameters
+            loss = sharpe_ratio_loss(weights, batch_returns)
+            loss.backward()
             optimizer.step()
 
-        avg_train_loss = total_train_loss / len(train_dataloader)  # Average training loss for the epoch
-        train_losses.append(avg_train_loss) # To plot after
-
-        # Validation phase (after each epoch)
-        model.eval()  # Set the model to evaluation mode
-        with torch.no_grad():  # No gradient calculation needed for validation
-            total_val_loss = 0.0
-            for batch_data, batch_returns in val_dataloader:
-                batch_data, batch_returns = batch_data.to(DEVICE), batch_returns.to(DEVICE)
-
-                # Forward pass (no gradients needed)
-                weights = model(batch_data)
-
-                # Compute validation loss (Negative Sharpe ratio)
-                val_loss = sharpe_ratio_loss(weights, batch_returns)
-                total_val_loss += val_loss.item()
-
-            avg_val_loss = total_val_loss / len(val_dataloader)  # Average validation loss for the epoch
-            val_losses.append(avg_val_loss)
-
-        # Print training and validation loss for the current epoch
-        logger.info(f"Epoch {epoch+1}: Training Loss = {avg_train_loss:.6f}, Validation Loss = {avg_val_loss:.6f}")
-
-    # Plotting train losses per epoch LSTM
-    plt.figure(figsize=(10, 6))
-    plt.plot(range(1, NUM_EPOCHS + 1), train_losses, label="Training Loss", color='blue')
-    plt.plot(range(1, NUM_EPOCHS + 1), val_losses, label="Validation Loss", color='red')
-    plt.xlabel("Epochs")
-    plt.ylabel("Loss")
-    plt.title("Average Training and Validation Losses per Epoch, LSTM")
-    plt.legend()
-
-    # Saving plot
-    logger.info("Saving loss plot...")
-    plt.savefig(f"{LATEST_MODEL_PATH}/train_val_loss")
-
-    plt.show()
-
-    # Saving model
-    logger.info("Saving model...")
-    torch.save(model.state_dict(), f"{LATEST_MODEL_PATH}/weights.pth")
-    metadata = {
-        "model": MODEL_NAME_FC,
-        "B": BATCH_SIZE,
-        "R": SHARPE_WINDOW,
-        "T": TIME_WINDOW,
-        "S": STOCK_COUNT,
-        "feature_count": FEATURE_COUNT,
-        "H": HIDDEN_SIZE,
-        "num_epochs": NUM_EPOCHS,
-        "optimizer": OPTIMIZE_TYPE,
-        "loss_function": LOSS_FUNCTION,
-        "notes": "fp-relu-lstm-fc-sm"
-    }
-
-    with open(f"{LATEST_MODEL_PATH}/info.json", 'w') as f:
-        json.dump(metadata, f, indent=4)
-
-
-def train_fc(lr: float = 1e-4, momentum: float = 0.99, weight_decay: float = 1e-5, optimize_type: str = "SGD"):
-    logger.info("Training FC model...")
-    model_fc = SharpeFCModel(input_size=2, hidden_size=HIDDEN_SIZE, feature_size=FEATURE_COUNT).to(DEVICE)
-
-    if optimize_type == "Adam":
-        optimizer_fc = torch.optim.Adam(model_fc.parameters(), lr=lr, weight_decay=weight_decay)
-    elif optimize_type == "SGD":
-        optimizer_fc = torch.optim.SGD(model_fc.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
-    else:
-        pass
-
-    train_losses_fc = []
-    val_losses_fc = []
-
-    for epoch in range(NUM_EPOCHS):
-        model_fc.train()  # Set model_fc to training mode
-        total_train_loss = 0.0
-        for batch_data, batch_returns in train_dataloader:
-            batch_data, batch_returns = batch_data.to(DEVICE), batch_returns.to(DEVICE)
-
-            optimizer_fc.zero_grad()  # Reset gradients for model_fc
-
-            # Forward pass
-            weights = model_fc(batch_data)
-
-            # Compute training loss (Negative Sharpe ratio)
-            train_loss = sharpe_ratio_loss(weights, batch_returns)
-            total_train_loss += train_loss.item()
-
-            # Backward pass
-            train_loss.backward()
-
-            # Update parameters
-            optimizer_fc.step()
+            total_train_loss += loss.item()
 
         avg_train_loss = total_train_loss / len(train_dataloader)
-        train_losses_fc.append(avg_train_loss)
+        train_losses.append(avg_train_loss)
 
-        # Validation phase
-        model_fc.eval()
+        # ---- Validation Loop ----
+        model.eval()
+        total_val_loss = 0.0
         with torch.no_grad():
-            total_val_loss = 0.0
             for batch_data, batch_returns in val_dataloader:
-                batch_data, batch_returns = batch_data.to(DEVICE), batch_returns.to(DEVICE)
+                batch_data, batch_returns = batch_data.to(device), batch_returns.to(device)
+                weights = model(batch_data)
+                loss = sharpe_ratio_loss(weights, batch_returns)
+                total_val_loss += loss.item()
 
-                # Forward pass
-                weights = model_fc(batch_data)
+        avg_val_loss = total_val_loss / len(val_dataloader)
+        val_losses.append(avg_val_loss)
 
-                # Compute validation loss (Negative Sharpe ratio)
-                val_loss = sharpe_ratio_loss(weights, batch_returns)
-                total_val_loss += val_loss.item()
+        logger.info(f"Epoch {epoch+1}: Train Loss = {avg_train_loss:.6f}, Val Loss = {avg_val_loss:.6f}")
 
-            avg_val_loss = total_val_loss / len(val_dataloader)
-            val_losses_fc.append(avg_val_loss)
-
-        # Print losses
-        logger.info(f"Epoch {epoch+1}: Training Loss = {avg_train_loss:.6f}, Validation Loss = {avg_val_loss:.6f}")
-
-    # Plotting train losses per epoch FC
+    # ---- Plotting ----
     plt.figure(figsize=(10, 6))
-    plt.plot(range(1, NUM_EPOCHS + 1), train_losses_fc, label="Training Loss", color='blue')
-    plt.plot(range(1, NUM_EPOCHS + 1), val_losses_fc, label="Validation Loss", color='red')
+    plt.plot(range(1, NUM_EPOCHS + 1), train_losses, label="Training Loss", color="blue")
+    plt.plot(range(1, NUM_EPOCHS + 1), val_losses, label="Validation Loss", color="red")
     plt.xlabel("Epochs")
     plt.ylabel("Loss")
-    plt.title("Average Training and Validation Losses per Epoch, FC")
+    plt.title(f"Train & Validation Losses - {model_type.upper()}")
     plt.legend()
+    plt.grid(True)
+    plt.savefig(f"{LATEST_MODEL_PATH}/{plot_name}")
+    plt.close()
+    logger.info("Saved training plot.")
 
-    # # Saving plot
-    logger.info("Saving loss plot...")
-    plt.savefig(f"{LATEST_MODEL_PATH}/train_val_loss_fc")
-    
-    # Saving model
-    logger.info("Saving model...")
-    torch.save(model_fc.state_dict(), f"{LATEST_MODEL_PATH}/weights_fc.pth")
+    # ---- Saving Model ----
+    torch.save(model.state_dict(), f"{LATEST_MODEL_PATH}/{weight_file}")
+    logger.info("Saved model weights.")
+
+    # ---- Save Metadata ----
     metadata = {
-        "model": MODEL_NAME_FC,
+        "model": model_name,
         "B": BATCH_SIZE,
         "R": SHARPE_WINDOW,
         "T": TIME_WINDOW,
@@ -191,13 +126,15 @@ def train_fc(lr: float = 1e-4, momentum: float = 0.99, weight_decay: float = 1e-
         "feature_count": FEATURE_COUNT,
         "H": HIDDEN_SIZE,
         "num_epochs": NUM_EPOCHS,
-        "optimizer": OPTIMIZE_TYPE,
+        "optimizer": optimize_type,
         "loss_function": LOSS_FUNCTION,
-        "notes": "fp-relu-mp-fc-relu-fc-relu-fc-relu-fc-sm"
+        "notes": notes
     }
 
-    with open(f"{LATEST_MODEL_PATH}/info_fc.json", 'w') as f:
+    with open(f"{LATEST_MODEL_PATH}/{info_file}", 'w') as f:
         json.dump(metadata, f, indent=4)
+
+    logger.info("Saved training metadata.")
 
 
 if __name__ == "__main__":
@@ -205,6 +142,25 @@ if __name__ == "__main__":
 
     fix_seed(seed=SEED)
     logger.info(f"Device: {DEVICE}, Seed: {SEED}")
-    
-    train_lstm(lr=LR, momentum=MOMENTUM, weight_decay=WEIGHT_DECAY, optimize_type=OPTIMIZE_TYPE)
-    train_fc(lr=LR, momentum=MOMENTUM, weight_decay=WEIGHT_DECAY, optimize_type=OPTIMIZE_TYPE)
+    logger.info(f"Stock count: {STOCK_COUNT}, Number of epochs: {NUM_EPOCHS}")
+
+    train_model(
+        model_type="lstm",
+        lr=LR,
+        momentum=MOMENTUM,
+        weight_decay=WEIGHT_DECAY,
+        optimize_type=OPTIMIZE_TYPE,
+        device=DEVICE,
+        train_dataloader=train_dataloader,
+        val_dataloader=val_dataloader
+        )
+    train_model(
+        model_type="fc",
+        lr=LR,
+        momentum=MOMENTUM,
+        weight_decay=WEIGHT_DECAY,
+        optimize_type=OPTIMIZE_TYPE,
+        device=DEVICE,
+        train_dataloader=train_dataloader,
+        val_dataloader=val_dataloader
+        )

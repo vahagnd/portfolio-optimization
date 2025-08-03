@@ -1,12 +1,12 @@
 {
-    "model": "single_layer_fc_on_mag7",
+    "model": "single_layer_lstm_on_mag7",
     "B": 8,
     "R": 25,
     "T": 32,
     "S": 7,
     "feature_count": 32,
     "H": 64,
-    "num_epochs": 10,
+    "num_epochs": 100,
     "optimizer": "SGD",
     "loss_function": "SharpeRatioLoss",
     "notes": "fp-relu-lstm-fc-sm"

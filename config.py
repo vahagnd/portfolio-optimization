@@ -34,7 +34,7 @@ TIME_WINDOW = 32
 STOCK_COUNT = Data(DF_MAG7_RAW).preprocess(years=YEARS)[0].shape[1]
 FEATURE_COUNT = 32
 HIDDEN_SIZE = 64
-NUM_EPOCHS = 10
+NUM_EPOCHS = 100
 MODEL_NAME_LSTM = "single_layer_lstm_on_mag7"
 MODEL_NAME_FC = "single_layer_fc_on_mag7"
 # DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu") # cuda is for nvidia GPUs
