@@ -18,18 +18,22 @@ def test_all(
     model_fc: SharpeFCModel,
     test_prices: pd.DataFrame,
     test_returns: pd.DataFrame,
+    cumulative_returns_markowitz: np.ndarray = None,
+    markowitz_returns: np.ndarray = None,
     T: int = 32,
     S: int = 7,
-    device: torch.device = DEVICE
+    device: torch.device = torch.device("mps")
 ):
     logger.info("Testing models...")
     cumulative_returns_test = [1]
     cumulative_returns_equal = [1] # equal
     cumulative_returns_fc = [1] # fc
+    cumulative_returns_markowitz = cumulative_returns_markowitz # markowitz
 
     test_predictions = []
     benchmark_returns = []
     test_predictions_fc = []
+    markowitz_returns = markowitz_returns
 
     testing_data = torch.stack([torch.tensor(test_prices.values, dtype=torch.float32),
                                 torch.tensor(test_returns.values, dtype=torch.float32)], axis=2).to(device) # (days, S, 2)
@@ -63,8 +67,8 @@ def test_all(
             label='benchmark_equal_weights', color='red') # equal
     plt.plot(test_prices.index.values[T - 1:], np.array([r.cpu().item() if r != 1 else r for r in cumulative_returns_fc]),
             label=MODEL_NAME_FC, color='orange')
-    # plt.plot(test_prices.index.values[T - 1:], portfolio_value_markowitz,
-    #         label='Markowitz', color='green') # markowitz
+    plt.plot(test_prices.index.values[T - 1:], cumulative_returns_markowitz,
+            label='rolling_markowitz', color='green') # markowitz
     plt.title("Cumulative Return Over Time On Test Data")
     plt.xlabel("Days")
     plt.ylabel("Cumulative Return")
@@ -94,6 +98,9 @@ if __name__ == "__main__":
     model.load_state_dict(torch.load(f"{LATEST_MODEL_PATH}/weights_lstm.pth"))
     model_fc.load_state_dict(torch.load(f"{LATEST_MODEL_PATH}/weights_fc.pth"))
 
+    cumulative_returns_markowitz = np.load(f"{LATEST_MODEL_PATH}/cumulative_returns_markowitz.npy")
+    markowitz_returns = np.load(f"{LATEST_MODEL_PATH}/markowitz_returns.npy")
+
     stock_data = Data(DF_MAG7_RAW)
 
     test_prices, test_returns = stock_data.get_test_dataframes(
@@ -106,6 +113,8 @@ if __name__ == "__main__":
         test_returns=test_returns,
         model=model,
         model_fc=model_fc,
+        cumulative_returns_markowitz=cumulative_returns_markowitz,
+        markowitz_returns=markowitz_returns,
         T=TIME_WINDOW,
         S=STOCK_COUNT,
         device=DEVICE

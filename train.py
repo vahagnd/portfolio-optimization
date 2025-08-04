@@ -10,6 +10,7 @@ from config import (
     LATEST_MODEL_PATH, LR, MOMENTUM, WEIGHT_DECAY, LOSS_FUNCTION, OPTIMIZE_TYPE,
     fix_seed, PREPROCESS_KWARGS, DF_MAG7_RAW, inspect_dataloader
 )
+from classicmethods.mpt import rolling_markowitz
 import logging
 
 logger = logging.getLogger(__name__)
@@ -22,7 +23,7 @@ def train_model(
     momentum: float = 0.99,
     weight_decay: float = 1e-5,
     optimize_type: str = "SGD",
-    device: torch.device = DEVICE
+    device: torch.device = torch.device("mps")
 ):
     logger.info(f"Training {model_type.upper()} model...")
 
@@ -147,6 +148,9 @@ if __name__ == "__main__":
     logger.debug(f"Stock count: {STOCK_COUNT}, Number of epochs: {NUM_EPOCHS}")
 
     stock_data = Data(DF_MAG7_RAW)
+    _, test_returns = stock_data.get_test_dataframes(
+        **PREPROCESS_KWARGS
+    )
     train_dataloader, val_dataloader = stock_data.get_train_val_dataloaders(
         batch_size=BATCH_SIZE,
         window_size=TIME_WINDOW,
@@ -176,3 +180,11 @@ if __name__ == "__main__":
         train_dataloader=train_dataloader,
         val_dataloader=val_dataloader
         )
+    rolling_markowitz(
+        test_returns=test_returns,
+        save_path=LATEST_MODEL_PATH,
+        device=DEVICE,
+        learning_rate=5e-3,
+        max_iter=100,
+        time_window=TIME_WINDOW
+    )
