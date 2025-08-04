@@ -1,11 +1,13 @@
 import pandas as pd
 import numpy as np
+from torch.utils.data import DataLoader
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from data.dataset import StockDataset
 
 class Data:
     def __init__(self, df_raw: pd.DataFrame):
-        self._df_raw = df_raw
-        self._df_clean = self.__prepreprocess(df_raw)
+        self.df_raw = df_raw
+        self.df_clean = self.__prepreprocess(df_raw)
 
     def __prepreprocess(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -34,21 +36,27 @@ class Data:
         return df_clean
 
     def __get_open(self) -> pd.DataFrame:
-        return self._df_clean['Open']
+        return self.df_clean['Open']
 
     def __get_high(self) -> pd.DataFrame:
-        return self._df_clean['High']
+        return self.df_clean['High']
 
     def __get_low(self) -> pd.DataFrame:
-        return self._df_clean['Low']
+        return self.df_clean['Low']
 
     def __get_close(self) -> pd.DataFrame:
-        return self._df_clean['Close']
+        return self.df_clean['Close']
 
     def __get_volume(self) -> pd.DataFrame:
-        return self._df_clean['Volume']
+        return self.df_clean['Volume']
 
-    def preprocess(self, years: list[str],  prices: str = 'close', normalize: bool = True, scaler: str = 'StandardScaler'):
+    def __preprocess(
+        self,
+        years: list[str], 
+        prices: str = 'close',
+        normalize: bool = True,
+        scaler: str = 'StandardScaler'
+        ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """
         Preprocess the data by splitting into train, validation, and test sets,
         normalizing (or standardizing) the prices and returns, and returning the processed data.
@@ -95,5 +103,51 @@ class Data:
             val_returns = scaler_returns.transform(val_returns)
             val_prices = scaler_prices.transform(val_prices)
 
-        # test data is returned raw for now
+            # test data is returned raw for now
+
         return train_prices, train_returns, val_prices, val_returns, test_prices, test_returns
+    
+    def get_train_val_datasets(
+        self,
+        window_size: int = 32,
+        sharpe_window: int = 25,
+        **kwargs
+        ) -> tuple[StockDataset, StockDataset]:
+        """
+        Get training and validation datasets based on the preprocessed data.
+        """
+        train_p, train_r, val_p, val_r, _, _ = self.__preprocess(
+            **kwargs
+        )
+        train_ds = StockDataset(train_r, train_p, window_size=window_size, sharpe_window=sharpe_window)
+        val_ds = StockDataset(val_r, val_p, window_size=window_size, sharpe_window=sharpe_window)
+        return train_ds, val_ds
+
+    def get_train_val_dataloaders(
+        self,
+        batch_size: int = 64,
+        window_size: int = 32,
+        sharpe_window: int = 25,
+        **kwargs
+        ) -> tuple[DataLoader, DataLoader]:
+        """
+        Get training and validation dataloaders based on the preprocessed data.
+        """
+        train_ds, val_ds = self.get_train_val_datasets(
+            window_size, sharpe_window, **kwargs
+            )
+        train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
+        val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=True)
+        return train_dl, val_dl
+    
+    def get_test_dataframes(
+        self,
+        **kwargs
+        ) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """
+        Get test prices and returns based on the preprocessed data.
+        """
+        _, _, _, _, test_prices, test_returns = self.__preprocess(
+            **kwargs
+        )
+        return test_prices, test_returns

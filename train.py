@@ -1,26 +1,28 @@
 from models import sharpe_ratio_loss, SharpeLSTMModel, SharpeFCModel
-from dataloaders import get_dataloaders
 from data.preprocessing import Data
 import pandas as pd
 import matplotlib.pyplot as plt
 import json
 import torch
-from config import *
+from config import (
+    SEED, DEVICE, HIDDEN_SIZE, FEATURE_COUNT, TIME_WINDOW, STOCK_COUNT,
+    NUM_EPOCHS, BATCH_SIZE, SHARPE_WINDOW, MODEL_NAME_LSTM, MODEL_NAME_FC,
+    LATEST_MODEL_PATH, LR, MOMENTUM, WEIGHT_DECAY, LOSS_FUNCTION, OPTIMIZE_TYPE,
+    fix_seed, PREPROCESS_KWARGS, DF_MAG7_RAW, inspect_dataloader
+)
 import logging
 
 logger = logging.getLogger(__name__)
 
-train_dataloader, val_dataloader = get_dataloaders(DF_MAG7_RAW, years=YEARS, prices=PRICES, normalize=True, scaler=SCALER)
-
 def train_model(
+    train_dataloader: torch.utils.data.dataloader.DataLoader,
+    val_dataloader: torch.utils.data.dataloader.DataLoader,
     model_type: str = "lstm",
     lr: float = 1e-4,
     momentum: float = 0.99,
     weight_decay: float = 1e-5,
     optimize_type: str = "SGD",
-    device: torch.device = DEVICE,
-    train_dataloader=train_dataloader,
-    val_dataloader=val_dataloader
+    device: torch.device = DEVICE
 ):
     logger.info(f"Training {model_type.upper()} model...")
 
@@ -138,11 +140,21 @@ def train_model(
 
 
 if __name__ == "__main__":
-    logger.info("train.py executed directly")
+    logger.warning("train.py executed directly")
 
     fix_seed(seed=SEED)
-    logger.info(f"Device: {DEVICE}, Seed: {SEED}")
-    logger.info(f"Stock count: {STOCK_COUNT}, Number of epochs: {NUM_EPOCHS}")
+    logger.debug(f"Device: {DEVICE}, Seed: {SEED}")
+    logger.debug(f"Stock count: {STOCK_COUNT}, Number of epochs: {NUM_EPOCHS}")
+
+    stock_data = Data(DF_MAG7_RAW)
+    train_dataloader, val_dataloader = stock_data.get_train_val_dataloaders(
+        batch_size=BATCH_SIZE,
+        window_size=TIME_WINDOW,
+        sharpe_window=SHARPE_WINDOW,
+        **PREPROCESS_KWARGS
+    )
+    inspect_dataloader(train_dataloader, name="Train")
+    inspect_dataloader(val_dataloader, name="Val")
 
     train_model(
         model_type="lstm",

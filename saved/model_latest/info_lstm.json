@@ -6,7 +6,7 @@
     "S": 7,
     "feature_count": 32,
     "H": 64,
-    "num_epochs": 100,
+    "num_epochs": 10,
     "optimizer": "SGD",
     "loss_function": "SharpeRatioLoss",
     "notes": "fp-relu-lstm-fc-sm"
