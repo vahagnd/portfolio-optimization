@@ -1,4 +1,4 @@
-from models import sharpe_ratio_loss, SharpeLSTMModel, SharpeFCModel
+from models import SharpeLSTMModel, SharpeFCModel
 from data.preprocessing import Data
 import torch
 import matplotlib.pyplot as plt
@@ -12,6 +12,35 @@ from config import (
 )
 
 logger = logging.getLogger(__name__)
+
+def compute_metrics(returns, cumulative_returns, risk_free_rate=0.0):
+    # Expected Return
+    expected_return = (cumulative_returns[-1] ** (252 / len(cumulative_returns)) - 1).item()
+    # Standard Deviation
+    std_dev = np.std(returns) * np.sqrt(252)
+    # Downside Deviation
+    downside_deviation = np.std(returns[returns < risk_free_rate]) * np.sqrt(252)
+    # Sharpe Ratio
+    sharpe_ratio = (expected_return - risk_free_rate) / std_dev if std_dev != 0 else np.nan
+    # Sortino Ratio
+    sortino_ratio = (expected_return - risk_free_rate) / downside_deviation if downside_deviation != 0 else np.nan
+    # Max Drawdown
+    cumulative_returns = np.cumsum(returns)
+    peak = np.maximum.accumulate(cumulative_returns)
+    drawdown = cumulative_returns - peak
+    max_drawdown = np.min(drawdown)
+
+    # Assemble metrics
+    metrics = {
+        "Expected Return": expected_return,
+        "STD": std_dev,
+        "Downside Deviation": downside_deviation,
+        "Sharpe Ratio": sharpe_ratio,
+        "Sortino Ratio": sortino_ratio,
+        "Maximum Drawdown": max_drawdown
+    }
+
+    return metrics
 
 def test_all(
     model: SharpeLSTMModel,
@@ -78,6 +107,46 @@ def test_all(
     plt.close()
     logger.info("Saved test cumulative returns plot.")
 
+    # ---- Metrics ---- TODO: move to a separate function, maybe make a class for Test
+    test_predictions = np.array(test_predictions)
+    benchmark_returns = np.array(benchmark_returns)
+    markowitz_returns = np.array(markowitz_returns)
+    test_predctions_fc = np.array(test_predictions_fc)
+
+    metrics_model = compute_metrics(test_predictions, cumulative_returns_test)
+    metrics_benchmark = compute_metrics(benchmark_returns, cumulative_returns_equal)
+    metrics_markowitz = compute_metrics(markowitz_returns, cumulative_returns_markowitz)
+    metrics_fc = compute_metrics(test_predctions_fc, cumulative_returns_fc)
+
+    metrics_df = pd.DataFrame({
+        "LSTM": metrics_model,
+        "Benchmark": metrics_benchmark,
+        "Markowitz": metrics_markowitz,
+        "FC": metrics_fc
+    }).round(4)
+
+    _, ax = plt.subplots(figsize=(6, 2))
+    ax.axis('off')
+
+    tbl = ax.table(
+        cellText=metrics_df.values,
+        rowLabels=metrics_df.index,
+        colLabels=metrics_df.columns,
+        loc='center',
+        cellLoc='center'
+    )
+
+    tbl.scale(1, 1.5)
+
+    for (row, _), cell in tbl.get_celld().items():
+        if row % 2 == 1:
+            cell.set_facecolor('#e0e0e0')  # lighter gray
+        else:
+            cell.set_facecolor('#b0b0b0')  # darker gray
+
+    plt.savefig(f"{LATEST_MODEL_PATH}/plots/metrics.png", dpi=300, bbox_inches='tight')
+    plt.close()
+    logger.info("Saved metrics.")
 
 if __name__ == "__main__":
     logger.warning("test.py executed directly")
