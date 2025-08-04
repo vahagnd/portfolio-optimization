@@ -74,7 +74,7 @@ def test_all(
     plt.ylabel("Cumulative Return")
     plt.legend()
     plt.grid(True)
-    plt.savefig(f"{LATEST_MODEL_PATH}/test_cum_ret")
+    plt.savefig(f"{LATEST_MODEL_PATH}/plots/test_cum_ret")
     plt.close()
     logger.info("Saved test cumulative returns plot.")
 

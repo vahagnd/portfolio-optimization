@@ -111,7 +111,7 @@ def train_model(
     plt.title(f"Train & Validation Losses - {model_type.upper()}")
     plt.legend()
     plt.grid(True)
-    plt.savefig(f"{LATEST_MODEL_PATH}/{plot_name}")
+    plt.savefig(f"{LATEST_MODEL_PATH}/plots/{plot_name}")
     plt.close()
     logger.info("Saved training plot.")
 
