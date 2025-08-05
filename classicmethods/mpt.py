@@ -94,6 +94,6 @@ def rolling_markowitz(
     cumulative_returns_markowitz = np.array(cumulative_returns_markowitz)
     markowitz_returns = np.array(markowitz_returns)
 
-    np.save(f"{save_path}/cumulative_returns_markowitz.npy", cumulative_returns_markowitz)
-    np.save(f"{save_path}/markowitz_returns.npy", markowitz_returns)
+    np.save(f"{save_path}/markowitz/cumulative_returns_markowitz.npy", cumulative_returns_markowitz)
+    np.save(f"{save_path}/markowitz/markowitz_returns.npy", markowitz_returns)
     logger.info("Saved Markowitz portfolio value and returns.")

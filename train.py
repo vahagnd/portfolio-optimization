@@ -39,8 +39,8 @@ def train_model(
         notes = "fp-relu-lstm-fc-sm"
         model_name = MODEL_NAME_LSTM
         plot_name = "train_val_loss_lstm"
-        weight_file = "weights_lstm.pth"
-        info_file = "info_lstm.json"
+        weight_file = "weights.pth"
+        info_file = "info.json"
 
     elif model_type == "fc":
         model = SharpeFCModel(
@@ -51,8 +51,8 @@ def train_model(
         notes = "fp-relu-mp-fc-relu-fc-relu-fc-relu-fc-sm"
         model_name = MODEL_NAME_FC
         plot_name = "train_val_loss_fc"
-        weight_file = "weights_fc.pth"
-        info_file = "info_fc.json"
+        weight_file = "weights.pth"
+        info_file = "info.json"
 
     else:
         raise ValueError(f"Unknown model_type: {model_type}")
@@ -116,7 +116,7 @@ def train_model(
     logger.info("Saved training plot.")
 
     # ---- Saving Model ----
-    torch.save(model.state_dict(), f"{LATEST_MODEL_PATH}/{weight_file}")
+    torch.save(model.state_dict(), f"{LATEST_MODEL_PATH}/{model_type}/{weight_file}")
     logger.info("Saved model weights.")
 
     # ---- Save Metadata ----
@@ -134,7 +134,7 @@ def train_model(
         "notes": notes
     }
 
-    with open(f"{LATEST_MODEL_PATH}/{info_file}", 'w') as f:
+    with open(f"{LATEST_MODEL_PATH}/{model_type}/{info_file}", 'w') as f:
         json.dump(metadata, f, indent=4)
 
     logger.info("Saved training metadata.")
@@ -170,6 +170,7 @@ if __name__ == "__main__":
         train_dataloader=train_dataloader,
         val_dataloader=val_dataloader
         )
+    
     train_model(
         model_type="fc",
         lr=LR,
@@ -180,6 +181,7 @@ if __name__ == "__main__":
         train_dataloader=train_dataloader,
         val_dataloader=val_dataloader
         )
+    
     rolling_markowitz(
         test_returns=test_returns,
         save_path=LATEST_MODEL_PATH,
