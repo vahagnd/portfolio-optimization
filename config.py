@@ -51,7 +51,7 @@ TIME_WINDOW = 32
 STOCK_COUNT = Data(DF_MAG7_RAW).get_test_dataframes(years=YEARS)[0].shape[1]
 FEATURE_COUNT = 32
 HIDDEN_SIZE = 64
-NUM_EPOCHS = 10
+NUM_EPOCHS = 200
 
 MODEL_NAME_LSTM = "single_layer_lstm_on_mag7"
 MODEL_NAME_FC = "single_layer_fc_on_mag7"

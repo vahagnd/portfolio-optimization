@@ -1,0 +1,13 @@
+{
+    "model": "single_layer_fc_on_mag7",
+    "B": 8,
+    "R": 25,
+    "T": 32,
+    "S": 7,
+    "feature_count": 32,
+    "H": 64,
+    "num_epochs": 200,
+    "optimizer": "SGD",
+    "loss_function": "SharpeRatioLoss",
+    "notes": "fp-relu-mp-fc-relu-fc-relu-fc-relu-fc-sm"
+}

@@ -104,7 +104,7 @@ def train_model(
         logger.info(f"Epoch {epoch+1}: Train Loss = {avg_train_loss:.6f}, Val Loss = {avg_val_loss:.6f}")
         if save_freq and (epoch + 1) % save_freq == 0:
             torch.save(model.state_dict(), f"{LATEST_MODEL_PATH}/{model_type}/weights_epoch_{epoch + 1}.pth")
-            logger.info(f"Saved model weights at epoch {epoch + 1}")
+            logger.info(f"Saved {model_type.upper()} weights at epoch {epoch + 1}")
 
     # ---- Plotting ----
     plt.figure(figsize=(10, 6))
@@ -173,7 +173,7 @@ if __name__ == "__main__":
         device=DEVICE,
         train_dataloader=train_dataloader,
         val_dataloader=val_dataloader,
-        save_freq=5
+        save_freq=20
         )
     
     train_model(
@@ -184,7 +184,8 @@ if __name__ == "__main__":
         optimize_type=OPTIMIZE_TYPE,
         device=DEVICE,
         train_dataloader=train_dataloader,
-        val_dataloader=val_dataloader
+        val_dataloader=val_dataloader,
+        save_freq=20
         )
     
     rolling_markowitz(
@@ -193,5 +194,5 @@ if __name__ == "__main__":
         device=DEVICE,
         learning_rate=5e-3,
         max_iter=100,
-        time_window=TIME_WINDOW
+        time_window=TIME_WINDOW,
     )
