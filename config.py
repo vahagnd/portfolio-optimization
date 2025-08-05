@@ -52,8 +52,12 @@ STOCK_COUNT = Data(DF_MAG7_RAW).get_test_dataframes(years=YEARS)[0].shape[1]
 FEATURE_COUNT = 32
 HIDDEN_SIZE = 64
 NUM_EPOCHS = 10
+
 MODEL_NAME_LSTM = "single_layer_lstm_on_mag7"
 MODEL_NAME_FC = "single_layer_fc_on_mag7"
+NOTES_FC = "fp-relu-mp-fc-relu-fc-relu-fc-relu-fc-sm"
+NOTES_LSTM = "fp-relu-lstm-fc-sm"
+
 # DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu") # cuda is for nvidia GPUs
 DEVICE = torch.device("mps" if torch.backends.mps.is_available() else "cpu") # mps is for macos
 

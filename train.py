@@ -8,7 +8,7 @@ from config import (
     SEED, DEVICE, HIDDEN_SIZE, FEATURE_COUNT, TIME_WINDOW, STOCK_COUNT,
     NUM_EPOCHS, BATCH_SIZE, SHARPE_WINDOW, MODEL_NAME_LSTM, MODEL_NAME_FC,
     LATEST_MODEL_PATH, LR, MOMENTUM, WEIGHT_DECAY, LOSS_FUNCTION, OPTIMIZE_TYPE,
-    fix_seed, PREPROCESS_KWARGS, DF_MAG7_RAW, inspect_dataloader
+    fix_seed, PREPROCESS_KWARGS, DF_MAG7_RAW, inspect_dataloader, NOTES_FC, NOTES_LSTM
 )
 from classicmethods.mpt import rolling_markowitz
 import logging
@@ -23,6 +23,7 @@ def train_model(
     momentum: float = 0.99,
     weight_decay: float = 1e-5,
     optimize_type: str = "SGD",
+    save_freq: int | None = None,
     device: torch.device = torch.device("mps")
 ):
     logger.info(f"Training {model_type.upper()} model...")
@@ -36,7 +37,7 @@ def train_model(
             num_layers=1,
             feature_size=FEATURE_COUNT
         ).to(device)
-        notes = "fp-relu-lstm-fc-sm"
+        notes = NOTES_LSTM
         model_name = MODEL_NAME_LSTM
         plot_name = "train_val_loss_lstm"
         weight_file = "weights.pth"
@@ -48,7 +49,7 @@ def train_model(
             hidden_size=HIDDEN_SIZE,
             feature_size=FEATURE_COUNT
         ).to(device)
-        notes = "fp-relu-mp-fc-relu-fc-relu-fc-relu-fc-sm"
+        notes = NOTES_FC
         model_name = MODEL_NAME_FC
         plot_name = "train_val_loss_fc"
         weight_file = "weights.pth"
@@ -101,6 +102,9 @@ def train_model(
         val_losses.append(avg_val_loss)
 
         logger.info(f"Epoch {epoch+1}: Train Loss = {avg_train_loss:.6f}, Val Loss = {avg_val_loss:.6f}")
+        if save_freq and (epoch + 1) % save_freq == 0:
+            torch.save(model.state_dict(), f"{LATEST_MODEL_PATH}/{model_type}/weights_epoch_{epoch + 1}.pth")
+            logger.info(f"Saved model weights at epoch {epoch + 1}")
 
     # ---- Plotting ----
     plt.figure(figsize=(10, 6))
@@ -168,7 +172,8 @@ if __name__ == "__main__":
         optimize_type=OPTIMIZE_TYPE,
         device=DEVICE,
         train_dataloader=train_dataloader,
-        val_dataloader=val_dataloader
+        val_dataloader=val_dataloader,
+        save_freq=5
         )
     
     train_model(
