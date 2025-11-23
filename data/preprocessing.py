@@ -35,19 +35,19 @@ class Data:
 
         return df_clean
 
-    def __get_open(self) -> pd.DataFrame:
+    def get_open(self) -> pd.DataFrame:
         return self.df_clean['Open']
 
-    def __get_high(self) -> pd.DataFrame:
+    def get_high(self) -> pd.DataFrame:
         return self.df_clean['High']
 
-    def __get_low(self) -> pd.DataFrame:
+    def get_low(self) -> pd.DataFrame:
         return self.df_clean['Low']
 
-    def __get_close(self) -> pd.DataFrame:
+    def get_close(self) -> pd.DataFrame:
         return self.df_clean['Close']
 
-    def __get_volume(self) -> pd.DataFrame:
+    def get_volume(self) -> pd.DataFrame:
         return self.df_clean['Volume']
 
     def __preprocess(
@@ -62,13 +62,13 @@ class Data:
         normalizing (or standardizing) the prices and returns, and returning the processed data.
         """
         if prices == 'open':
-            df = self.__get_open()
+            df = self.get_open()
         elif prices == 'high':
-            df = self.__get_high()
+            df = self.get_high()
         elif prices == 'low':
-            df = self.__get_low()
+            df = self.get_low()
         elif prices == 'close':
-            df = self.__get_close()
+            df = self.get_close()
         else:
             raise ValueError("Invalid price type")
 
