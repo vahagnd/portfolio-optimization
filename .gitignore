@@ -6,13 +6,13 @@ dist/
 wheels/
 *.egg-info
 
-# Virtual environments
+# Env
 .venv
+.env
 
 # Jupyter
 .ipynb_checkpoints/
 .virtual_documents/
-*.ipynb
 
 # Cache
 .ruff_cache
