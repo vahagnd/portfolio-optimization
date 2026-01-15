@@ -1,19 +1,23 @@
-import torch
 import logging
-from data.preprocessing import Data
-import pandas as pd
 import random
+
 import numpy as np
+import pandas as pd
+import torch
+
+from data.preprocessing import Data
 
 logging.basicConfig(
     level=logging.DEBUG,
-    format="%(asctime)s [%(levelname)s] %(module)s.%(funcName)s:%(lineno)d - %(message)s"
+    format="%(asctime)s [%(levelname)s] %(module)s.%(funcName)s:%(lineno)d - %(message)s",
 )
-logging.getLogger('matplotlib.font_manager').disabled = True # This fucker floods logs
+logging.getLogger("matplotlib.font_manager").disabled = True  # This fucker floods logs
 
 logger = logging.getLogger(__name__)
 
 SEED = 42
+
+
 def fix_seed(seed=SEED):
     random.seed(seed)
     np.random.seed(seed)
@@ -24,19 +28,21 @@ def fix_seed(seed=SEED):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
-PRICES = 'close'  # Options: 'open', 'high', 'low', 'close'
+
+PRICES = "close"  # Options: 'open', 'high', 'low', 'close'
 YEARS = [2018, 2019, 2020]  # Years to split data
 NORMALIZE = True  # Normalize data
-SCALER = 'StandardScaler'  # Options: 'MinMaxScaler', 'StandardScaler'
+SCALER = "StandardScaler"  # Options: 'MinMaxScaler', 'StandardScaler'
 
 DF_MAG7_RAW = pd.read_csv("data-csv/ohlcv_adjusted_mag7.csv")
 
 PREPROCESS_KWARGS = {
-    'years': YEARS,
-    'prices': PRICES,
-    'normalize': NORMALIZE,
-    'scaler': SCALER,
+    "years": YEARS,
+    "prices": PRICES,
+    "normalize": NORMALIZE,
+    "scaler": SCALER,
 }
+
 
 def inspect_dataloader(dataloader, name="Train"):
     for x, y in dataloader:
@@ -44,6 +50,7 @@ def inspect_dataloader(dataloader, name="Train"):
         logger.debug(f"{name} batch y shape: {y.shape}")
         break
     logger.debug(f"Length of {name} dataloader: {len(dataloader)}")
+
 
 BATCH_SIZE = 8
 SHARPE_WINDOW = 25
@@ -58,8 +65,11 @@ MODEL_NAME_FC = "single_layer_fc_on_mag7"
 NOTES_FC = "fp-relu-mp-fc-relu-fc-relu-fc-relu-fc-sm"
 NOTES_LSTM = "fp-relu-lstm-fc-sm"
 
-# DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu") # cuda is for nvidia GPUs
-DEVICE = torch.device("mps" if torch.backends.mps.is_available() else "cpu") # mps is for macos
+# # cuda is for nvidia GPUs
+# DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# mps is for macos
+DEVICE = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 
 LR = 1e-4
 MOMENTUM = 0.99
@@ -68,4 +78,3 @@ OPTIMIZE_TYPE = "SGD"  # Options: "Adam", "SGD"
 LOSS_FUNCTION = "SharpeRatioLoss"  # Options: "SharpeRatioLoss"
 
 LATEST_MODEL_PATH = "saved/model_latest"
-

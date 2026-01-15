@@ -1,12 +1,14 @@
+import logging
+
 import numpy as np
 import pandas as pd
-import scipy.optimize as sco
+
 # import cupy as cp
 import torch
 import torch.optim
-import logging
 
 logger = logging.getLogger(__name__)
+
 
 def markowitz_optimization_pytorch(
     returns: torch.Tensor,
@@ -23,15 +25,21 @@ def markowitz_optimization_pytorch(
 
     # Step 2: Initialize weights (uniform distribution, long-only portfolio)
     n_assets = returns.shape[1]
-    weights = torch.ones(n_assets, dtype=torch.float32, device=device) / n_assets  # Start with equal weights
+    weights = (
+        torch.ones(n_assets, dtype=torch.float32, device=device) / n_assets
+    )  # Start with equal weights
     weights.requires_grad = True  # We want to compute gradients for optimization
 
     # Step 3: Gradient descent to minimize portfolio variance and meet target return
-    optimizer = torch.optim.SGD([weights], lr=learning_rate)  # Stochastic Gradient Descent for optimization
+    optimizer = torch.optim.SGD(
+        [weights], lr=learning_rate
+    )  # Stochastic Gradient Descent for optimization
 
     for _ in range(max_iter):
         # Portfolio return and variance (risk)
-        portfolio_return = torch.dot(mean_returns, weights)  # Expected return of the portfolio
+        portfolio_return = torch.dot(
+            mean_returns, weights
+        )  # Expected return of the portfolio
         portfolio_variance = torch.matmul(weights, torch.matmul(cov_matrix, weights))
 
         # Portfolio loss (minimize variance)
@@ -44,14 +52,14 @@ def markowitz_optimization_pytorch(
         optimizer.zero_grad()  # Zero previous gradients
         loss.backward()  # Compute gradients
         optimizer.step()  # Update weights
-        
+
         # Step 5: Normalize weights so that they sum to 1 (in-place operations)
         with torch.no_grad():
             weights.clamp_(min=0)
             weights /= weights.sum()
 
-
     return weights
+
 
 def rolling_markowitz(
     test_returns: pd.DataFrame,
@@ -65,35 +73,41 @@ def rolling_markowitz(
     Perform rolling Markowitz portfolio optimization on test returns. Using markowitz_optimization_pytorch function.
     Returns the portfolio value and returns for each day in the test set.
     """
-    logger.info(f"Starting rolling Markowitz...")
+    logger.info("Starting rolling Markowitz...")
     logger.debug(f"Iterations: {max_iter}")
-    test_returns_tensor = torch.tensor(test_returns.values, dtype=torch.float32, device=device)
-    
+    test_returns_tensor = torch.tensor(
+        test_returns.values, dtype=torch.float32, device=device
+    )
+
     cumulative_returns_markowitz = [1]
     markowitz_returns = []
 
     window_size = time_window
 
     for t in range(window_size, len(test_returns_tensor)):
-
         if t % 100 == 0:
             logger.info(f"Day {t}")
 
         optimal_weights = markowitz_optimization_pytorch(
-            test_returns_tensor[t-window_size:t],
+            test_returns_tensor[t - window_size : t],
             learning_rate=learning_rate,
             max_iter=max_iter,
-            device=device
-            )
+            device=device,
+        )
 
         next_day_return = torch.dot(optimal_weights, test_returns_tensor[t])
 
-        cumulative_returns_markowitz.append(cumulative_returns_markowitz[-1] * (1 + next_day_return.item()))
+        cumulative_returns_markowitz.append(
+            cumulative_returns_markowitz[-1] * (1 + next_day_return.item())
+        )
         markowitz_returns.append(next_day_return.item())
 
     cumulative_returns_markowitz = np.array(cumulative_returns_markowitz)
     markowitz_returns = np.array(markowitz_returns)
 
-    np.save(f"{save_path}/markowitz/cumulative_returns_markowitz.npy", cumulative_returns_markowitz)
+    np.save(
+        f"{save_path}/markowitz/cumulative_returns_markowitz.npy",
+        cumulative_returns_markowitz,
+    )
     np.save(f"{save_path}/markowitz/markowitz_returns.npy", markowitz_returns)
     logger.info("Saved Markowitz portfolio value and returns.")

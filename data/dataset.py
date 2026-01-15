@@ -1,8 +1,10 @@
-import torch
-from torch.utils.data import Dataset
 import logging
 
+import torch
+from torch.utils.data import Dataset
+
 logger = logging.getLogger(__name__)
+
 
 class StockDataset(Dataset):
     def __init__(self, returns_df, prices_df, window_size=32, sharpe_window=25):
@@ -14,7 +16,7 @@ class StockDataset(Dataset):
         """
         assert returns_df.shape == prices_df.shape, "DataFrames must be same shape"
         self.returns = torch.tensor(returns_df, dtype=torch.float32)  # (days, S)
-        self.prices = torch.tensor(prices_df, dtype=torch.float32)    # (days, S)
+        self.prices = torch.tensor(prices_df, dtype=torch.float32)  # (days, S)
 
         logger.debug(self.returns.shape)
         logger.debug(self.prices.shape)
@@ -41,7 +43,7 @@ class StockDataset(Dataset):
             end = start + self.T
 
             ret_window = self.returns[start:end]  # (T, S)
-            pri_window = self.prices[start:end]   # (T, S)
+            pri_window = self.prices[start:end]  # (T, S)
 
             window = torch.stack([ret_window, pri_window], dim=-1)  # (T, S, 2)
             x.append(window)

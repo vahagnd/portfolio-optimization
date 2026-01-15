@@ -14,5 +14,8 @@ wheels/
 .virtual_documents/
 *.ipynb
 
+# Cache
+.ruff_cache
+
 # Other
 temp/

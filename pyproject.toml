@@ -25,5 +25,29 @@ jupyter = [
     "jupyterlab-code-formatter>=3.0.2",
     "jupyterlab-lsp>=5.1.1",
     "python-lsp-server>=1.12.2",
-    "theme-darcula>=4.0.0"
+    "theme-darcula>=4.0.0",
+    "pre-commit>=4.5.1",
 ]
+
+[tool.ruff]
+exclude = [
+    "__pycache__",
+    ".github",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".venv",
+    "logs",
+    ".git",
+    "notebooks",
+    "saved",
+    "temp",
+    "data-csv"
+    ]
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"
+line_length = 88

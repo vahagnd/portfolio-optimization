@@ -1,9 +1,10 @@
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 import logging
 
+import torch.nn as nn
+import torch.nn.functional as F
+
 logger = logging.getLogger(__name__)
+
 
 def sharpe_ratio_loss(weights, returns, epsilon=1e-6):
     """
@@ -16,8 +17,11 @@ def sharpe_ratio_loss(weights, returns, epsilon=1e-6):
     sharpe = mean / std
     return -sharpe.mean()  # negative Sharpe to minimize
 
+
 class SharpeLSTMModel(nn.Module):
-    def __init__(self, num_classes=1, input_size=2, hidden_size=64, num_layers=1, feature_size=32):
+    def __init__(
+        self, num_classes=1, input_size=2, hidden_size=64, num_layers=1, feature_size=32
+    ):
         super(SharpeLSTMModel, self).__init__()
 
         self.num_classes = num_classes
@@ -33,7 +37,12 @@ class SharpeLSTMModel(nn.Module):
         self.relu = nn.ReLU()
 
         # LSTM layer
-        self.lstm = nn.LSTM(input_size=feature_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=True)
+        self.lstm = nn.LSTM(
+            input_size=feature_size,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
+            batch_first=True,
+        )
 
         # Fully connected output layer (hidden_size -> 1)
         self.fc = nn.Linear(hidden_size, 1)
@@ -67,6 +76,7 @@ class SharpeLSTMModel(nn.Module):
 
         return weights
 
+
 class SharpeFCModel(nn.Module):
     def __init__(self, input_size=2, feature_size=32, hidden_size=64, dropout_rate=0.1):
         super(SharpeFCModel, self).__init__()
@@ -91,23 +101,24 @@ class SharpeFCModel(nn.Module):
         x = x.mean(dim=2)  # (B, R, S, F)
 
         # Feed through deeper FC block
-        x = self.relu(self.fc1(x))     # (B, R, S, hidden)
+        x = self.relu(self.fc1(x))  # (B, R, S, hidden)
         x = self.dropout(x)
-        x = self.relu(self.fc2(x))     # (B, R, S, hidden)
+        x = self.relu(self.fc2(x))  # (B, R, S, hidden)
         x = self.dropout(x)
-        x = self.relu(self.fc3(x))     # (B, R, S, hidden)
+        x = self.relu(self.fc3(x))  # (B, R, S, hidden)
         x = self.dropout(x)
-        x = self.fc4(x)                # (B, R, S, 1)
-        x = x.squeeze(-1)              # (B, R, S)
+        x = self.fc4(x)  # (B, R, S, 1)
+        x = x.squeeze(-1)  # (B, R, S)
 
         # Softmax to get portfolio weights
         weights = F.softmax(x, dim=2)
 
         return weights
 
+
 if __name__ == "__main__":
     logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(module)s.%(funcName)s:%(lineno)d - %(message)s"
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(module)s.%(funcName)s:%(lineno)d - %(message)s",
     )
     logger.info("models.py executed directly")
