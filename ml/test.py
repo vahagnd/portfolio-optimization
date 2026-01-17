@@ -5,8 +5,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-from config import (
-    DEVICE,
+from config.config import (
     DF_MAG7_RAW,
     FEATURE_COUNT,
     HIDDEN_SIZE,
@@ -17,8 +16,9 @@ from config import (
     STOCK_COUNT,
     TIME_WINDOW,
 )
+from config.device import DEVICE
 from data.preprocessing import Data
-from models import SharpeFCModel, SharpeLSTMModel
+from ml.models import SharpeFCModel, SharpeLSTMModel
 
 logger = logging.getLogger(__name__)
 

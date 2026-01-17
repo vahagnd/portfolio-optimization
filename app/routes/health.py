@@ -4,7 +4,8 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 
 from app.schemas.health import HealthResponse, StatusResponse
-from config import DEVICE, DF_MAG7_RAW, LATEST_MODEL_PATH
+from config.config import DF_MAG7_RAW, LATEST_MODEL_PATH
+from config.device import DEVICE
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,7 @@ router = APIRouter(tags=["Health"])
 @router.get("/health", description="Health check endpoint.", summary="health check")
 async def health_check() -> HealthResponse:
     """Health check endpoint"""
-    return {"status": "healthy"}
+    return {"status": "ok"}
 
 
 @router.get(

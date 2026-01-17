@@ -6,7 +6,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException
 
 from app.schemas.models import ModelInfo, ModelInfoBase
-from config import LATEST_MODEL_PATH
+from config.config import LATEST_MODEL_PATH
 
 logger = logging.getLogger(__name__)
 

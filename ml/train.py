@@ -5,9 +5,8 @@ import matplotlib.pyplot as plt
 import torch
 
 from classicmethods.mpt import rolling_markowitz
-from config import (
+from config.config import (
     BATCH_SIZE,
-    DEVICE,
     DF_MAG7_RAW,
     FEATURE_COUNT,
     HIDDEN_SIZE,
@@ -27,11 +26,12 @@ from config import (
     STOCK_COUNT,
     TIME_WINDOW,
     WEIGHT_DECAY,
-    fix_seed,
-    inspect_dataloader,
 )
+from config.data_utils import inspect_dataloader
+from config.device import DEVICE
+from config.seeding import fix_seed
 from data.preprocessing import Data
-from models import SharpeFCModel, SharpeLSTMModel, sharpe_ratio_loss
+from ml.models import SharpeFCModel, SharpeLSTMModel, sharpe_ratio_loss
 
 logger = logging.getLogger(__name__)
 

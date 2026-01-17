@@ -3,7 +3,7 @@ import logging
 from fastapi import APIRouter, HTTPException
 
 from app.schemas.data import DatasetInfo, StocksResponse
-from config import DF_MAG7_RAW
+from config.config import DF_MAG7_RAW
 
 logger = logging.getLogger(__name__)
 
